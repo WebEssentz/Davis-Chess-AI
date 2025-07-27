@@ -1,0 +1,18 @@
+# In pyproject.toml
+
+[project]
+name = "davis-ai"
+version = "0.1.0"
+description = "Ossie Davis Chess AI - A self-learning chess engine."
+requires-python = ">=3.9"
+dependencies = [
+    "torch",
+    "numpy",
+    "python-chess",
+    "pytest",
+    "pytest-cov",
+]
+
+# ADD THIS SECTION
+[tool.setuptools.packages.find]
+where = ["src"]
