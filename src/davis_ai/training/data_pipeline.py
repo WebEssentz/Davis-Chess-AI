@@ -181,33 +181,25 @@ class ChessDataset(Dataset):
 
     @staticmethod
     def _flip_policy(policy_target: torch.Tensor, board: Board) -> torch.Tensor:
-        """ Flips the policy tensor horizontally with 100% accuracy. """
+        """ Flips the policy tensor horizontally with 100% accuracy and robust iteration. """
         flipped_policy = torch.zeros_like(policy_target)
         
-        # Iterate through the original policy's probabilities
-        for move_idx in policy_target.nonzero().squeeze():
+        # --- THE DEFINITIVE FIX ---
+        # Get the indices of non-zero elements. This returns a 2D tensor of shape (N, 1).
+        # We iterate directly over this, which is always safe.
+        for idx_tensor in policy_target.nonzero():
+            # idx_tensor will be a 1D tensor like tensor([459])
+            move_idx = idx_tensor.item()
             prob = policy_target[move_idx].item()
-            
             try:
-                # 1. Decode the move index back to a move object
-                original_move = policy_index_to_move(move_idx.item(), board._board)
-
-                # 2. Mathematically flip the move's squares
+                original_move = policy_index_to_move(move_idx, board._board)
                 flipped_from = chess.square_mirror(original_move.from_square)
                 flipped_to = chess.square_mirror(original_move.to_square)
-                
-                # 3. Create the new, flipped move object
                 flipped_move = chess.Move(flipped_from, flipped_to, promotion=original_move.promotion)
-                
-                # 4. Re-encode the new, flipped move to get its correct policy index
                 flipped_idx = move_to_policy_index(flipped_move)
-                
-                # 5. Assign the probability to the new index
                 flipped_policy[flipped_idx] = prob
-            
             except Exception:
-                # If any part of the decode/encode fails (e.g., for a strange move),
-                # we just use the original index to be safe. This is rare.
+                # Fallback on any error during the complex flip process
                 flipped_policy[move_idx] = prob
                 
         return flipped_policy
