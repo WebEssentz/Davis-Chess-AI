@@ -1,0 +1,87 @@
+# =============================================================================
+# Project Davis .gitignore
+# Author: Onyerikam Godwin (Web Essentz) for Ossie
+# =============================================================================
+
+# --- Data & Generated Files ---
+# NEVER commit the data directory. This is the most important rule.
+# It contains models, games, and processed data which are large and transient.
+data/
+temp_games/
+temp_test_data/
+
+# Log files
+logs/
+*.log
+
+# Temporary model files from tests
+dummy_*.pth
+candidate.pth
+best.pth
+*.pkl
+
+# --- Python ---
+# Byte-compiled / optimized / C extensions
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Pytest
+.pytest_cache/
+.coverage
+*.cover
+*.cache
+nosetests.xml
+coverage.xml
+*,cover
+*.html
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# --- Environment ---
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak
+venv.bak
+
+# dotenv
+.env
+.env.*
+
+# --- IDEs ---
+# VS Code
+.vscode/
+.history/
+
+# PyCharm
+.idea/
+*.iws
+
+# --- Other ---
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
