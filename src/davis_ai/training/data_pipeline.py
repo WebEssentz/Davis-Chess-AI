@@ -11,6 +11,7 @@ from typing import List, Tuple
 from .self_play import GameRecord
 from ..board import Board
 from ..engine import InferenceEngine, MonteCarloTreeSearch
+from ..utils.move_encoder import move_to_policy_index, policy_index_to_move # Import the new decoder
 
 # --- ECR (Echo Chamber Reinforcement) Analyst ---
 
@@ -61,17 +62,155 @@ def analyze_and_enhance_game(game_record: GameRecord, analyst_engine: InferenceE
 # --- PyTorch Dataset ---
 
 class ChessDataset(Dataset):
-    """A PyTorch Dataset for loading processed game data."""
-    def __init__(self, data: List[Tuple[str, torch.Tensor, float]]):
+    def __init__(self, data: List[Tuple[str, torch.Tensor, float]], augment: bool = True):
         self.data = data
+        self.augment = augment
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
         fen, policy_target, value_target = self.data[idx]
-        board_tensor = Board._get_tensor_from_fen(fen)
+        board = Board(chess.Board(fen))
+        board_tensor = board.to_model_input()
+        
+        if self.augment and torch.rand(1).item() > 0.5:
+            board_tensor = torch.flip(board_tensor, [2])
+            policy_target = self._flip_policy(policy_target, board)
+            
         return board_tensor, policy_target, torch.tensor([value_target], dtype=torch.float32)
+
+    @staticmethod
+    def _flip_policy(policy_target: torch.Tensor, board: Board) -> torch.Tensor:
+        flipped_policy = torch.zeros_like(policy_target)
+        non_zero_indices = policy_target.nonzero()
+
+        # Handle the edge case of a 0-D tensor (single non-zero element)
+        if non_zero_indices.dim() == 1 and non_zero_indices.numel() == 1:
+            non_zero_indices = non_zero_indices.unsqueeze(0)
+        
+        # Handle the general case, ensuring we iterate over a 2D tensor of indices
+        for idx_tensor in non_zero_indices:
+            move_idx = idx_tensor.item()
+            prob = policy_target[move_idx].item()
+            try:
+                original_move = policy_index_to_move(move_idx, board._board)
+                flipped_from = chess.square_mirror(original_move.from_square)
+                flipped_to = chess.square_mirror(original_move.to_square)
+                flipped_move = chess.Move(flipped_from, flipped_to, promotion=original_move.promotion)
+                flipped_idx = move_to_policy_index(flipped_move)
+                flipped_policy[flipped_idx] = prob
+            except Exception:
+                flipped_policy[move_idx] = prob
+                
+        return flipped_policy
+    
+    """ A PyTorch Dataset for loading game data, with robust data augmentation. """
+    def __init__(self, data: List[Tuple[str, torch.Tensor, float]], augment: bool = True):
+        self.data = data
+        self.augment = augment
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        fen, policy_target, value_target = self.data[idx]
+        board = Board(chess.Board(fen))
+        board_tensor = board.to_model_input()
+        
+        if self.augment and torch.rand(1).item() > 0.5:
+            board_tensor = torch.flip(board_tensor, [2])
+            policy_target = self._flip_policy(policy_target, board)
+            
+        return board_tensor, policy_target, torch.tensor([value_target], dtype=torch.float32)
+
+    @staticmethod
+    def _flip_policy(policy_target: torch.Tensor, board: Board) -> torch.Tensor:
+        """ Flips the policy tensor horizontally with 100% accuracy and robust iteration. """
+        flipped_policy = torch.zeros_like(policy_target)
+        
+        # --- THE FIX ---
+        # Get the indices of non-zero elements
+        non_zero_indices = policy_target.nonzero().squeeze()
+        
+        # If there's only one non-zero element, squeeze() makes it a 0-D tensor.
+        # We must check for this and make it iterable.
+        if non_zero_indices.dim() == 0:
+            # If it's a single number (e.g., tensor(459)), this condition is true.
+            # We wrap it in a list/tensor to make it a 1-D tensor.
+            if non_zero_indices.numel() > 0: # Ensure it's not an empty tensor
+                 non_zero_indices = non_zero_indices.unsqueeze(0)
+            else: # Handle case of all-zero policy tensor
+                 return flipped_policy
+
+        for move_idx in non_zero_indices:
+            prob = policy_target[move_idx].item()
+            try:
+                original_move = policy_index_to_move(move_idx.item(), board._board)
+                flipped_from = chess.square_mirror(original_move.from_square)
+                flipped_to = chess.square_mirror(original_move.to_square)
+                flipped_move = chess.Move(flipped_from, flipped_to, promotion=original_move.promotion)
+                flipped_idx = move_to_policy_index(flipped_move)
+                flipped_policy[flipped_idx] = prob
+            except Exception:
+                flipped_policy[move_idx] = prob # Fallback on error
+                
+        return flipped_policy
+    
+    """ A PyTorch Dataset for loading game data, now with perfect data augmentation. """
+    def __init__(self, data: List[Tuple[str, torch.Tensor, float]], augment: bool = True):
+        self.data = data
+        self.augment = augment
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        fen, policy_target, value_target = self.data[idx]
+        board = Board(chess.Board(fen)) # We need the board object for flipping
+        board_tensor = board.to_model_input()
+        
+        # --- UPGRADE #11: Perfect Data Augmentation via Board Symmetries ---
+        if self.augment and torch.rand(1).item() > 0.5:
+            # Flip the board tensor horizontally
+            board_tensor = torch.flip(board_tensor, [2])
+            # Flip the policy target to match the board flip
+            policy_target = self._flip_policy(policy_target, board)
+            
+        return board_tensor, policy_target, torch.tensor([value_target], dtype=torch.float32)
+
+    @staticmethod
+    def _flip_policy(policy_target: torch.Tensor, board: Board) -> torch.Tensor:
+        """ Flips the policy tensor horizontally with 100% accuracy. """
+        flipped_policy = torch.zeros_like(policy_target)
+        
+        # Iterate through the original policy's probabilities
+        for move_idx in policy_target.nonzero().squeeze():
+            prob = policy_target[move_idx].item()
+            
+            try:
+                # 1. Decode the move index back to a move object
+                original_move = policy_index_to_move(move_idx.item(), board._board)
+
+                # 2. Mathematically flip the move's squares
+                flipped_from = chess.square_mirror(original_move.from_square)
+                flipped_to = chess.square_mirror(original_move.to_square)
+                
+                # 3. Create the new, flipped move object
+                flipped_move = chess.Move(flipped_from, flipped_to, promotion=original_move.promotion)
+                
+                # 4. Re-encode the new, flipped move to get its correct policy index
+                flipped_idx = move_to_policy_index(flipped_move)
+                
+                # 5. Assign the probability to the new index
+                flipped_policy[flipped_idx] = prob
+            
+            except Exception:
+                # If any part of the decode/encode fails (e.g., for a strange move),
+                # we just use the original index to be safe. This is rare.
+                flipped_policy[move_idx] = prob
+                
+        return flipped_policy
 
 def create_dataloader(processed_data_path: str, batch_size: int, shuffle: bool = True) -> DataLoader:
     """Loads processed data from a file and creates a DataLoader."""

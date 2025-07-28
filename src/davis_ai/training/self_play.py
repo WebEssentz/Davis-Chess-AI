@@ -8,6 +8,8 @@ import os
 from dataclasses import dataclass, field
 from typing import List, Tuple
 
+from davis_ai.engine.mcts import MCTSNode
+
 from ..engine import InferenceEngine, MonteCarloTreeSearch
 from ..board import Board
 
@@ -24,14 +26,13 @@ class SelfPlayWorker:
     of the AI, generating a GameRecord.
     """
     def __init__(self, inference_engine: InferenceEngine, config: dict):
+        # CORRECTED: The MCTS engine now takes the entire config dictionary directly.
         self.mcts = MonteCarloTreeSearch(
             inference_engine=inference_engine,
-            c_puct=config.get('mcts_c_puct', 4.0),
-            dirichlet_alpha=config.get('mcts_dirichlet_alpha', 0.3),
-            dirichlet_epsilon=config.get('mcts_dirichlet_epsilon', 0.25)
+            config=config 
         )
         self.simulations_per_move = config.get('simulations_per_move', 100)
-        self.move_limit = config.get('move_limit', 200) # Prevents infinitely long games
+        self.move_limit = config.get('move_limit', 200)
 
     def play_game(self) -> GameRecord:
         """

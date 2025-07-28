@@ -25,7 +25,9 @@ def get_human_move(board: Board) -> chess.Move:
         try:
             move_uci = input("Enter your move in UCI format (e.g., e2e4): ")
             move = chess.Move.from_uci(move_uci)
-            if move in board.get_legal_moves():
+            legal_moves = list(board.get_legal_moves())
+            print("Legal moves:", [m.uci() for m in legal_moves])  # Debug print
+            if move in legal_moves:
                 return move
             else:
                 print("Invalid move. Please try again.")
@@ -72,7 +74,12 @@ def main():
         
         mcts_config = DAVIS_CONFIG.copy()
         mcts_config['simulations_per_move'] = args.sims
-        mcts = MonteCarloTreeSearch(engine, mcts_config)
+        mcts = MonteCarloTreeSearch(
+            engine,
+            c_puct=mcts_config.get("c_puct", 4.0),
+            dirichlet_alpha=mcts_config.get("dirichlet_alpha", 0.3),
+            dirichlet_epsilon=mcts_config.get("dirichlet_epsilon", 0.25)
+        )
         
         board = Board()
         

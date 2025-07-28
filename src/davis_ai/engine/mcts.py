@@ -38,12 +38,14 @@ class MCTSNode:
 
 class MonteCarloTreeSearch:
     """Advanced MCTS implementation for Davis AI."""
-    def __init__(self, inference_engine: InferenceEngine, c_puct: float = 4.0, dirichlet_alpha: float = 0.3, dirichlet_epsilon: float = 0.25):
+    # --- UPGRADE #8: Added config for pruning the search ---
+    def __init__(self, inference_engine: InferenceEngine, config: dict):
         self.inference_engine = inference_engine
-        self.c_puct = c_puct
-        self.dirichlet_alpha = dirichlet_alpha
-        self.dirichlet_epsilon = dirichlet_epsilon
-        self.root: Optional[MCTSNode] = None
+        self.c_puct = config.get('mcts_c_puct', 4.0)
+        self.dirichlet_alpha = config.get('mcts_dirichlet_alpha', 0.3)
+        self.dirichlet_epsilon = config.get('mcts_dirichlet_epsilon', 0.25)
+        self.top_k_moves = config.get('mcts_top_k_moves', 5) # New parameter
+        self.root = None
 
     # CORRECTED TYPE HINTS AND VARIABLE NAMES
     def search(self, board: Board, num_simulations: int) -> MCTSNode:
@@ -77,27 +79,38 @@ class MonteCarloTreeSearch:
         return node
 
     def _expand_and_evaluate(self, node: MCTSNode, add_dirichlet_noise: bool) -> float:
+        """ Expansion and Evaluation phase. Now with intelligent pruning. """
         policy_probs, value = self.inference_engine.predict(node.board)
-        
         legal_moves = node.board.get_legal_moves()
         if not legal_moves:
             return value
 
-        if add_dirichlet_noise:
-            noise = np.random.dirichlet([self.dirichlet_alpha] * len(legal_moves))
-        
-        for i, move in enumerate(legal_moves):
+        # --- UPGRADE #8: Prune the search to only the most promising moves ---
+        move_priors = {}
+        for move in legal_moves:
             try:
                 policy_idx = move_to_policy_index(move)
                 prior = policy_probs[policy_idx].item()
-
-                if add_dirichlet_noise:
-                    prior = (1 - self.dirichlet_epsilon) * prior + self.dirichlet_epsilon * noise[i]
-                
-                new_board = node.board.apply_move(move)
-                node.children[move] = MCTSNode(parent=node, board=new_board, policy_prior=prior)
+                move_priors[move] = prior
             except (ValueError, IndexError):
                 continue
+        
+        # Sort moves by their prior probability from the network
+        sorted_moves = sorted(move_priors.keys(), key=lambda m: move_priors[m], reverse=True)
+        
+        # Limit the search to the top K moves
+        moves_to_expand = sorted_moves[:self.top_k_moves]
+        
+        if add_dirichlet_noise and moves_to_expand:
+            noise = np.random.dirichlet([self.dirichlet_alpha] * len(moves_to_expand))
+        
+        for i, move in enumerate(moves_to_expand):
+            prior = move_priors[move]
+            if add_dirichlet_noise:
+                prior = (1 - self.dirichlet_epsilon) * prior + self.dirichlet_epsilon * noise[i]
+            
+            new_board = node.board.apply_move(move)
+            node.children[move] = MCTSNode(parent=node, board=new_board, policy_prior=prior)
         
         return value
 

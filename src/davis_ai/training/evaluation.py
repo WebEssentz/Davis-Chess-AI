@@ -12,8 +12,9 @@ class Evaluator:
     Pits two model versions against each other to determine which is stronger.
     """
     def __init__(self, candidate_engine: InferenceEngine, best_engine: InferenceEngine, config: dict):
-        self.candidate_mcts = MonteCarloTreeSearch(candidate_engine, c_puct=config.get('mcts_c_puct', 4.0))
-        self.best_mcts = MonteCarloTreeSearch(best_engine, c_puct=config.get('mcts_c_puct', 4.0))
+        # CORRECTED: Pass the entire config dictionary.
+        self.candidate_mcts = MonteCarloTreeSearch(candidate_engine, config=config)
+        self.best_mcts = MonteCarloTreeSearch(best_engine, config=config)
         self.num_games = config.get('eval_num_games', 50)
         self.simulations_per_move = config.get('simulations_per_move', 100)
         self.move_limit = config.get('move_limit', 200)
