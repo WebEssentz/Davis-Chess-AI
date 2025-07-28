@@ -1,8 +1,0 @@
-[2025-07-28 00:42:58] [INFO] [davis_ai] - ==================================================
-[2025-07-28 00:42:58] [INFO] [davis_ai] -            STARTING DAVIS AI TRAINING RUN           
-[2025-07-28 00:42:58] [INFO] [davis_ai] - ==================================================
-[2025-07-28 00:42:58] [INFO] [davis_ai] - Starting the main reinforcement learning loop...
-[2025-07-28 00:46:52] [WARNING] [davis_ai] - Training run interrupted by user (Ctrl+C). Exiting.
-[2025-07-28 00:46:52] [INFO] [davis_ai] - ==================================================
-[2025-07-28 00:46:52] [INFO] [davis_ai] -             DAVIS AI TRAINING RUN ENDED             
-[2025-07-28 00:46:52] [INFO] [davis_ai] - ==================================================

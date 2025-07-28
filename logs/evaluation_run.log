@@ -1,8 +1,0 @@
-[2025-07-28 00:40:23] [INFO] [davis_ai] - =====================================================
-[2025-07-28 00:40:23] [INFO] [davis_ai] -            STARTING DAVIS AI EVALUATION RUN          
-[2025-07-28 00:40:23] [INFO] [davis_ai] - =====================================================
-[2025-07-28 00:40:23] [ERROR] [davis_ai] - Configuration Error: Model 1 path not found: data/models/candidate.pth
-[2025-07-28 00:40:35] [INFO] [davis_ai] - =====================================================
-[2025-07-28 00:40:35] [INFO] [davis_ai] -            STARTING DAVIS AI EVALUATION RUN          
-[2025-07-28 00:40:35] [INFO] [davis_ai] - =====================================================
-[2025-07-28 00:40:35] [ERROR] [davis_ai] - Configuration Error: Model 1 path not found: data/models/model_gen_10.pth
