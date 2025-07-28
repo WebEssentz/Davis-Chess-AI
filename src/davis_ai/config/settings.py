@@ -19,7 +19,7 @@ DAVIS_CONFIG = {
     "candidate_model_filename": "candidate.pth",
 
     # --- Self-Play and MCTS Configuration ---
-    "simulations_per_move": 5,        # MCTS simulations for each move during self-play.
+    "simulations_per_move": 400,        # MCTS simulations for each move during self-play.
     "mcts_c_puct": 4.0,                 # UCB formula exploration constant.
     "mcts_dirichlet_alpha": 0.3,        # Dirichlet noise alpha for root node exploration.
     "mcts_dirichlet_epsilon": 0.25,     # Weight of Dirichlet noise in the root policy.
@@ -32,13 +32,13 @@ DAVIS_CONFIG = {
     "batch_size": 1024,                 # Batch size for training the neural network.
 
     # --- ECR (Echo Chamber Reinforcement) Analyst Configuration ---
-    "ecr_analyst_simulations": 50,     # Deeper MCTS search for post-game blunder analysis.
+    "ecr_analyst_simulations": 800,     # Deeper MCTS search for post-game blunder analysis.
 
     # --- Evaluation Configuration ---
-    "eval_num_games": 1,              # Number of games to play between candidate and best model.
+    "eval_num_games": 100,              # Number of games to play between candidate and best model.
     "eval_win_threshold": 0.55,         # Candidate must win >55% of decisive games to be promoted.
 
     # --- Main Loop Configuration ---
-    "num_generations": 2,             # Total number of training generations to run.
-    "games_per_generation": 3,       # Number of self-play games to generate in each generation.
+    "num_generations": 500,             # Total number of training generations to run.
+    "games_per_generation": 5000,       # Number of self-play games to generate in each generation.
 }
